@@ -1,18 +1,29 @@
 import {Telegraf} from 'telegraf';
 import {createRequire} from "module";
 const require = createRequire(import.meta.url);
-var rp = require("request-promise");
+const rp = require("request-promise");
+require('dotenv').config()
 
-console.log("Generating Bot System...");
-const bot = new Telegraf("5720374615:AAEaqdAKK-gOOyMB7CZRACMzJ3gXcxZtQfA");
+function getENV(envName){
+  // this function safely loads environment variables
+  if(process.env[envName] && process.env[envName].length === 0){
+    console.error(`Error loading env variable ${envName}`)
+    process.exit(1)
+  }
+  return process.env[envName]
+}
+
+
+console.info("Generating Bot System...");
+const bot = new Telegraf(getENV('AFABE_TG_BOT_TOKEN'));
 
 const API = 'https://9mkhzfaym3.execute-api.us-east-1.amazonaws.com/production/convert';
 
 async function Translate(Text) {
   let List = Text.split(" ");
   let FinalText = "";
-  let SendingInfo = ". " + Text.toLowerCase() + " ."; // dont ask me why :|
-  var options = {
+  const SendingInfo = ". " + Text.toLowerCase() + " ."; // Don't ask me why :|
+  const options = {
     method: 'POST',
     uri: API,
     headers: {
@@ -27,9 +38,9 @@ async function Translate(Text) {
     json: true
   };
   await rp(options).then(function (response) {
-    for (var key in response) {
-      for (var i = 0; i < List.length; i++) {
-        if (List[i].toLowerCase() == key) {
+    for (const key in response) {
+      for (let i = 0; i < List.length; i++) {
+        if (List[i].toLowerCase() === key) {
           List[i] = response[key];
         }
       }
@@ -58,7 +69,7 @@ bot.on('text', async (ctx) => {
   // if (ctx.message.chat.type == "group" || ctx.message.chat.type == "supergroup") {
   //   ctx.leaveChat();
   // }
-  if (ctx.chat.type == "private") {
+  if (ctx.chat.type === "private") {
     if (/[a-zA-Z]/.test(ctx.message.text)) {
       let newText = await Translate(ctx.message.text);
       await ctx.reply(newText,
@@ -67,10 +78,10 @@ bot.on('text', async (ctx) => {
       await ctx.reply("اینکه فینگلیش نیست",
             {reply_to_message_id: ctx.message.message_id});
     }
-  } else if (ctx.chat.type == "group" || ctx.chat.type == "supergroup") {
-    var skipWay = ctx.message.text.slice(-1) == "*";
+  } else if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
+    const skipWay = ctx.message.text.slice(-1) === "*";
     if (ListeningCommands.includes(ctx.message.text) || skipWay) {
-      var TargetMessage = skipWay ? ctx.message.text.slice(0, -1) : ctx.message.reply_to_message.text;
+      const TargetMessage = skipWay ? ctx.message.text.slice(0, -1) : ctx.message.reply_to_message.text;
       if (ctx.message.reply_to_message || skipWay) {
         if (/[a-zA-Z]/.test(TargetMessage)) {
           let newText = await Translate(TargetMessage);
@@ -85,9 +96,9 @@ bot.on('text', async (ctx) => {
   }
 });
 
-console.log("Starting Bot");
+console.info("Starting Bot");
 await bot.launch();
-console.log("Bot Launched");
+console.info("Bot Launched");
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
