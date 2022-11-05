@@ -171,8 +171,4 @@ dist
 # https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
 
 node_modules
-
-# and uncomment the following lines
-# .pnp.*
-
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,node,yarn
+.env

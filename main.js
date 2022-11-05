@@ -2,9 +2,20 @@ import {Telegraf} from 'telegraf';
 import {createRequire} from "module";
 const require = createRequire(import.meta.url);
 const rp = require("request-promise");
+require('dotenv').config()
+
+function getENV(envName){
+  // this function safely loads environment variables
+  if(process.env[envName] && process.env[envName].length === 0){
+    console.error(`Error loading env variable ${envName}`)
+    process.exit(1)
+  }
+  return process.env[envName]
+}
+
 
 console.info("Generating Bot System...");
-const bot = new Telegraf("5720374615:AAEaqdAKK-gOOyMB7CZRACMzJ3gXcxZtQfA");
+const bot = new Telegraf(getENV('AFABE_TG_BOT_TOKEN'));
 
 const API = 'https://9mkhzfaym3.execute-api.us-east-1.amazonaws.com/production/convert';
 

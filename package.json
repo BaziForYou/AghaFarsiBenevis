@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/kianashnad/kiankuftbot#readme",
   "dependencies": {
+    "dotenv": "^16.0.3",
     "module": "^1.2.5",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
