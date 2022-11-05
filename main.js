@@ -5,7 +5,6 @@ const rp = require("request-promise");
 require('dotenv').config()
 
 function getENV(envName){
-  // this function safely loads environment variables
   if(process.env[envName] && process.env[envName].length === 0){
     console.error(`Error loading env variable ${envName}`)
     process.exit(1)
@@ -20,9 +19,18 @@ const bot = new Telegraf(getENV('AFABE_TG_BOT_TOKEN'));
 const API = 'https://9mkhzfaym3.execute-api.us-east-1.amazonaws.com/production/convert';
 
 async function Translate(Text) {
-  let List = Text.split(" ");
+  const List = Text.split("\n").map((item) => item.split(" "));
+  const NewList = List.map((item, index) => {
+    if (index === 0) {
+      return item;
+    } else {
+      return ["\n", ...item];
+    }
+  });
+  let FlatList = NewList.flat();
   let FinalText = "";
-  const SendingInfo = ". " + Text.toLowerCase() + " ."; // Don't ask me why :|
+  
+  const SendingInfo = ". " + Text.replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
   const options = {
     method: 'POST',
     uri: API,
@@ -39,13 +47,13 @@ async function Translate(Text) {
   };
   await rp(options).then(function (response) {
     for (const key in response) {
-      for (let i = 0; i < List.length; i++) {
-        if (List[i].toLowerCase() === key) {
-          List[i] = response[key];
+      for (let i = 0; i < FlatList.length; i++) {
+        if (FlatList[i].toLowerCase() === key) {
+          FlatList[i] = response[key];
         }
       }
     }
-    FinalText = List.join(" ");
+    FinalText = FlatList.join(" ");
   });
   return FinalText
 }
@@ -66,9 +74,6 @@ const ListeningCommands = [
 ]
 
 bot.on('text', async (ctx) => {
-  // if (ctx.message.chat.type == "group" || ctx.message.chat.type == "supergroup") {
-  //   ctx.leaveChat();
-  // }
   if (ctx.chat.type === "private") {
     if (/[a-zA-Z]/.test(ctx.message.text)) {
       let newText = await Translate(ctx.message.text);
