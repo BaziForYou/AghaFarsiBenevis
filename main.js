@@ -48,7 +48,7 @@ async function Translate(Text) {
   await rp(options).then(function (response) {
     for (const key in response) {
       for (let i = 0; i < FlatList.length; i++) {
-        if (FlatList[i].toLowerCase() === key) {
+        if (!FlatList[i].startsWith("@") && FlatList[i].toLowerCase() === key) {
           FlatList[i] = response[key];
         }
       }
