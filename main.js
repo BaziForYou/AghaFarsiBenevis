@@ -66,7 +66,7 @@ async function Translate(Text) {
   await rp(options).then(function (response) {
     for (const key in response) {
       for (let i = 0; i < FlatList.length; i++) {
-        const CheckingWord = FlatList[i];
+        const CheckingWord = FlatList[i].toLowerCase();
         if (!CheckingWord.startsWith("@") && CheckingWord === key) {
           FlatList[i] = response[key];
         } else if (CheckingWord.includes("'") && CheckingWord.includes(key)) {
@@ -89,20 +89,18 @@ bot.on('text', async (ctx) => {
       await ctx.reply("اینکه فینگلیش نیست",
             {reply_to_message_id: ctx.message.message_id});
     }
-  } else if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
+  } else if ((ctx.message.text && ctx.message.text.length > 0) && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
     const LastWord = ctx.message.text.split(" ").pop();
     const skipWay = EndingLetters.includes(LastWord);
-    if (ListeningCommands.includes(ctx.message.text.toLowerCase()) || skipWay) {
+    if ((ListeningCommands.includes(ctx.message.text.toLowerCase()) && ctx.message.reply_to_message) || skipWay) {
       const TargetMessage = skipWay ? ctx.message.text.slice(0, (LastWord.length * -1)) : ctx.message.reply_to_message.text;
-      if (ctx.message.reply_to_message || skipWay) {
-        if (/[a-zA-Z]/.test(TargetMessage)) {
-          let newText = await Translate(TargetMessage);
-          await ctx.reply(newText,
-                {reply_to_message_id: ctx.message.message_id});
-        } else {
-          await ctx.reply("اینکه فینگلیش نیست",
-                {reply_to_message_id: ctx.message.message_id});
-        }
+      if (/[a-zA-Z]/.test(TargetMessage)) {
+        let newText = await Translate(TargetMessage);
+        await ctx.reply(newText,
+              {reply_to_message_id: ctx.message.message_id});
+      } else {
+        await ctx.reply("اینکه فینگلیش نیست",
+              {reply_to_message_id: ctx.message.message_id});
       }
     }
   }
