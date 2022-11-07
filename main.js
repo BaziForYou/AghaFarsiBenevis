@@ -15,7 +15,8 @@ function getENV(envName){
 
 console.info("Generating Bot System...");
 const bot = new Telegraf(getENV('AFABE_TG_BOT_TOKEN'));
-
+const ListeningCommands = getENV('AFABE_TG_Listening_Words').toLowerCase().split(',')
+const EndingLetters = getENV('AFABE_TG_Auto_End_Letter').toLowerCase().split(',')
 const API = 'https://9mkhzfaym3.execute-api.us-east-1.amazonaws.com/production/convert';
 
 async function Translate(Text) {
@@ -27,10 +28,27 @@ async function Translate(Text) {
       return ["\n", ...item];
     }
   });
-  let FlatList = NewList.flat();
+  let FlatList = NewList.flat().map((item) => {
+    if (item.length > 1 && item.includes("'")) {
+      const StatedWith = item.startsWith("'")
+      const EndedWith = item.endsWith("'")
+      const Cleaned = item.replace(/'/g, "")
+      if (StatedWith && EndedWith) {
+        return  "'" + Cleaned + "'";
+      } else if (StatedWith) {
+        return Cleaned + "'";
+      } else if (EndedWith) {
+        return "'" + Cleaned;
+      } else {
+        return Cleaned;
+      }
+    } else {
+      return item;
+    }
+  });
   let FinalText = "";
   
-  const SendingInfo = ". " + Text.replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
+  const SendingInfo = ". " + Text.replace(/'/g, "").replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
   const options = {
     method: 'POST',
     uri: API,
@@ -48,8 +66,11 @@ async function Translate(Text) {
   await rp(options).then(function (response) {
     for (const key in response) {
       for (let i = 0; i < FlatList.length; i++) {
-        if (!FlatList[i].startsWith("@") && FlatList[i].toLowerCase() === key) {
+        const CheckingWord = FlatList[i];
+        if (!CheckingWord.startsWith("@") && CheckingWord === key) {
           FlatList[i] = response[key];
+        } else if (CheckingWord.includes("'") && CheckingWord.includes(key)) {
+          FlatList[i] = CheckingWord.replace(key, response[key]);
         }
       }
     }
@@ -57,21 +78,6 @@ async function Translate(Text) {
   });
   return FinalText
 }
-
-const ListeningCommands = [
-  "فارسیشو میخوام",
-  "فارسیشو بده",
-  "فارسیشو بگو",
-  "ف میخوام",
-  "ف بده",
-  "ف بگو",
-  "گشادم بخونم",
-  "فینگلیش",
-  "هوی ترجمه کن",
-  "بغ بغ",
-  "بغ بغو",
-  "ف",
-]
 
 bot.on('text', async (ctx) => {
   if (ctx.chat.type === "private") {
@@ -84,9 +90,10 @@ bot.on('text', async (ctx) => {
             {reply_to_message_id: ctx.message.message_id});
     }
   } else if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
-    const skipWay = ctx.message.text.slice(-1) === "*";
-    if (ListeningCommands.includes(ctx.message.text) || skipWay) {
-      const TargetMessage = skipWay ? ctx.message.text.slice(0, -1) : ctx.message.reply_to_message.text;
+    const LastWord = ctx.message.text.split(" ").pop();
+    const skipWay = EndingLetters.includes(LastWord);
+    if (ListeningCommands.includes(ctx.message.text.toLowerCase()) || skipWay) {
+      const TargetMessage = skipWay ? ctx.message.text.slice(0, (LastWord.length * -1)) : ctx.message.reply_to_message.text;
       if (ctx.message.reply_to_message || skipWay) {
         if (/[a-zA-Z]/.test(TargetMessage)) {
           let newText = await Translate(TargetMessage);
