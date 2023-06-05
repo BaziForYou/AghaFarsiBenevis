@@ -79,21 +79,22 @@ async function Translate(Text) {
   return FinalText
 }
 
-bot.on('text', async (ctx) => {
+async function workOnMessage(ctx) {
+  const currentMessage = ctx.message.caption || ctx.message.text;
   if (ctx.chat.type === "private") {
-    if (/[a-zA-Z]/.test(ctx.message.text)) {
-      let newText = await Translate(ctx.message.text);
+    if (/[a-zA-Z]/.test(currentMessage)) {
+      let newText = await Translate(currentMessage);
       await ctx.reply(newText,
             {reply_to_message_id: ctx.message.message_id});
     } else {
       await ctx.reply("اینکه فینگلیش نیست",
             {reply_to_message_id: ctx.message.message_id});
     }
-  } else if ((ctx.message.text && ctx.message.text.length > 0) && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
-    const LastWord = ctx.message.text.split(" ").pop();
+  } else if ((currentMessage && currentMessage.length > 0) && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
+    const LastWord = currentMessage.split(" ").pop();
     const skipWay = EndingLetters.includes(LastWord);
-    if ((ListeningCommands.includes(ctx.message.text.toLowerCase()) && ctx.message.reply_to_message) || skipWay) {
-      const TargetMessage = skipWay ? ctx.message.text.slice(0, (LastWord.length * -1)) : ctx.message.reply_to_message.text;
+    if ((currentMessage && ListeningCommands.includes(currentMessage.toLowerCase())) || skipWay) {
+      const TargetMessage = skipWay ? currentMessage.slice(0, (LastWord.length * -1)) : (ctx.message.reply_to_message.caption || ctx.message.reply_to_message.text);
       if (/[a-zA-Z]/.test(TargetMessage)) {
         let newText = await Translate(TargetMessage);
         await ctx.reply(newText,
@@ -104,7 +105,20 @@ bot.on('text', async (ctx) => {
       }
     }
   }
-});
+}
+
+bot.on('text', workOnMessage);
+bot.on('photo', workOnMessage);
+bot.on('sticker', workOnMessage);
+bot.on('video', workOnMessage);
+bot.on('video_note', workOnMessage);
+bot.on('voice', workOnMessage);
+bot.on('audio', workOnMessage);
+bot.on('animation', workOnMessage);
+bot.on('document', workOnMessage);
+bot.on('poll', workOnMessage);
+bot.on('contact', workOnMessage);
+bot.on('location', workOnMessage);
 
 console.info("Starting Bot");
 await bot.launch();
