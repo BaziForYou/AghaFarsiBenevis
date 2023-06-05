@@ -82,13 +82,15 @@ async function Translate(Text) {
 async function workOnMessage(ctx) {
   const currentMessage = ctx.message.caption || ctx.message.text;
   if (ctx.chat.type === "private") {
-    if (/[a-zA-Z]/.test(currentMessage)) {
-      let newText = await Translate(currentMessage);
-      await ctx.reply(newText,
-            {reply_to_message_id: ctx.message.message_id});
-    } else {
-      await ctx.reply("اینکه فینگلیش نیست",
-            {reply_to_message_id: ctx.message.message_id});
+    if (currentMessage) {
+      if (/[a-zA-Z]/.test(currentMessage)) {
+        let newText = await Translate(currentMessage);
+        await ctx.reply(newText,
+              {reply_to_message_id: ctx.message.message_id});
+      } else {
+        await ctx.reply("اینکه فینگلیش نیست",
+              {reply_to_message_id: ctx.message.message_id});
+      }
     }
   } else if ((currentMessage && currentMessage.length > 0) && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
     const LastWord = currentMessage.split(" ").pop();
