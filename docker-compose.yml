@@ -1,7 +1,10 @@
 version: "3.9"
 services:
   tgbot:
-    restart: always
+    container_name: AghaFarsiBenevis
+    restart: unless-stopped
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: Dockerfile
