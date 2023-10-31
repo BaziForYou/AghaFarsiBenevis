@@ -109,7 +109,8 @@ async function Translate(Text) {
       }
     }).catch(function (err) {
       const error = toString(err.error || err);
-      resolve(error)
+      resolve(`مشکلی در فرایند ترجمه پیش آمده است لطفا بعدا دوباره تلاش کنید
+خطا: ${error}`)
     });
   });
 }
