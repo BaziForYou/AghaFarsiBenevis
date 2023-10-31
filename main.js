@@ -1,9 +1,10 @@
 import {Telegraf} from 'telegraf';
-import {createRequire} from "module";
-const require = createRequire(import.meta.url);
-const rp = require("request-promise");
-require('dotenv').config()
+import dotenv from 'dotenv';
+import { promisify } from "util";
+import request from "request";
+const rp = promisify(request);
 
+dotenv.config()
 function getENV(envName){
   if(process.env[envName] && process.env[envName].length === 0){
     console.error(`Error loading env variable ${envName}`)
@@ -12,71 +13,105 @@ function getENV(envName){
   return process.env[envName]
 }
 
-
 console.info("Generating Bot System...");
+const ignoreRegex = {
+  "url" : /(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z]{2,}(\.[a-zA-Z]{2,})(\.[a-zA-Z]{2,})?\/[a-zA-Z0-9]{2,}|((https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z]{2,}(\.[a-zA-Z]{2,})(\.[a-zA-Z]{2,})?)|(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z0-9]{2,}\.[a-zA-Z0-9]{2,}\.[a-zA-Z0-9]{2,}(\.[a-zA-Z0-9]{2,})?/g,
+  "emailRegex" : /(?:[a-z0-9+!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gi,
+  "userName" : /(?:@|(?:(?:(?:https?:\/\/)?t(?:elegram)?)\.me\/))(\w{4,})$/gm
+}
 const bot = new Telegraf(getENV('AFABE_TG_BOT_TOKEN'));
 const ListeningCommands = getENV('AFABE_TG_Listening_Words').toLowerCase().split(',')
 const EndingLetters = getENV('AFABE_TG_Auto_End_Letter').toLowerCase().split(',')
 const API = 'https://9mkhzfaym3.execute-api.us-east-1.amazonaws.com/production/convert';
 
+async function isValidForTranslate(text) {
+  return new Promise((resolve, reject) => {
+    let isValid = true;
+    for (const key in ignoreRegex) {
+      const regex = ignoreRegex[key];
+      if (regex.test(text)) {
+        isValid = false;
+        break;
+      }
+    }
+    resolve(isValid);
+  });
+}
+
 async function Translate(Text) {
-  const List = Text.split("\n").map((item) => item.split(" "));
-  const NewList = List.map((item, index) => {
-    if (index === 0) {
-      return item;
-    } else {
-      return ["\n", ...item];
-    }
-  });
-  let FlatList = NewList.flat().map((item) => {
-    if (item.length > 1 && item.includes("'")) {
-      const StatedWith = item.startsWith("'")
-      const EndedWith = item.endsWith("'")
-      const Cleaned = item.replace(/'/g, "")
-      if (StatedWith && EndedWith) {
-        return  "'" + Cleaned + "'";
-      } else if (StatedWith) {
-        return Cleaned + "'";
-      } else if (EndedWith) {
-        return "'" + Cleaned;
+  return new Promise(async (resolve, reject) => {
+    const List = Text.split("\n").map((item) => item.split(" "));
+    const NewList = List.map((item, index) => {
+      if (index === 0) {
+        return item;
       } else {
-        return Cleaned;
+        return ["\n", ...item];
       }
-    } else {
-      return item;
-    }
-  });
-  let FinalText = "";
-  
-  const SendingInfo = ". " + Text.replace(/'/g, "").replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
-  const options = {
-    method: 'POST',
-    uri: API,
-    headers: {
-      'Referer': 'https://behnevis.com/',
-      'Origin': 'https://behnevis.com',
-      'Save-Data': 'on',
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36',
-      'DNT': '1',
-      'Content-Type': 'text/plain',
-    },
-    body: SendingInfo,
-    json: true
-  };
-  await rp(options).then(function (response) {
-    for (const key in response) {
-      for (let i = 0; i < FlatList.length; i++) {
-        const CheckingWord = FlatList[i].toLowerCase();
-        if (!CheckingWord.startsWith("@") && CheckingWord === key) {
-          FlatList[i] = response[key];
-        } else if (CheckingWord.includes("'") && CheckingWord.includes(key)) {
-          FlatList[i] = CheckingWord.replace(key, response[key]);
+    });
+    let FlatList = NewList.flat().map((item) => {
+      if (item.length > 1 && item.includes("'")) {
+        const StatedWith = item.startsWith("'")
+        const EndedWith = item.endsWith("'")
+        const Cleaned = item.replace(/'/g, "")
+        if (StatedWith && EndedWith) {
+          return  "'" + Cleaned + "'";
+        } else if (StatedWith) {
+          return Cleaned + "'";
+        } else if (EndedWith) {
+          return "'" + Cleaned;
+        } else {
+          return Cleaned;
         }
+      } else {
+        return item;
       }
-    }
-    FinalText = FlatList.join(" ");
+    });
+    
+    const SendingInfo = ". " + Text.replace(/'/g, "").replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
+    const options = {
+      method: 'POST',
+      uri: API,
+      headers: {
+        'Referer': 'https://behnevis.com/',
+        'Origin': 'https://behnevis.com',
+        'Save-Data': 'on',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36',
+        'DNT': '1',
+        'Content-Type': 'text/plain',
+      },
+      body: SendingInfo,
+      json: true
+    };
+    await rp(options).then(async function (response) {
+      if (response.statusCode == 200) {
+        if (response && response.body && response.body['."'] && response.body['".']) {
+          delete response.body['."'] // still dont ask me why :|
+          delete response.body['".'] // still dont ask me why :|
+          for (let i = 0; i < FlatList.length; i++) {
+            const CheckingWord = FlatList[i].toLowerCase();
+            const canTranslate = await isValidForTranslate(CheckingWord);
+            if (canTranslate) {
+              const checkWordLower = CheckingWord.toLowerCase();
+              if (response.body[checkWordLower]) {
+                FlatList[i] = response.body[checkWordLower];
+              }
+            }
+          }
+          const FinalText = FlatList.join(" ");
+          resolve(FinalText);
+        } else {
+          resolve(`مشکلی در وب سرویس ها پیش آمده است لطفا بعد از چند ثانیه دوباره تلاش کنید
+کد خطا: Wrong Body Response`)
+        }
+      } else {
+        resolve(`مشکلی در وب سرویس ها پیش آمده است لطفا بعد از چند ثانیه دوباره تلاش کنید
+کد خطا: ${response.statusCode}`)
+      }
+    }).catch(function (err) {
+      const error = toString(err.error || err);
+      resolve(error)
+    });
   });
-  return FinalText
 }
 
 async function workOnMessage(ctx) {
