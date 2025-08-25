@@ -39,109 +39,127 @@ async function isValidForTranslate(text) {
 }
 
 async function Translate(Text) {
-  return new Promise(async (resolve, reject) => {
-    const List = Text.split("\n").map((item) => item.split(" "));
-    const NewList = List.map((item, index) => {
-      if (index === 0) {
-        return item;
-      } else {
-        return ["\n", ...item];
-      }
-    });
-    let FlatList = NewList.flat().map((item) => {
-      if (item.length > 1 && item.includes("'")) {
-        const StatedWith = item.startsWith("'")
-        const EndedWith = item.endsWith("'")
-        const Cleaned = item.replace(/'/g, "")
-        if (StatedWith && EndedWith) {
-          return  "'" + Cleaned + "'";
-        } else if (StatedWith) {
-          return Cleaned + "'";
-        } else if (EndedWith) {
-          return "'" + Cleaned;
+  try {
+    return new Promise(async (resolve, reject) => {
+      const List = Text.split("\n").map((item) => item.split(" "));
+      const NewList = List.map((item, index) => {
+        if (index === 0) {
+          return item;
         } else {
-          return Cleaned;
+          return ["\n", ...item];
         }
-      } else {
-        return item;
-      }
-    });
-    
-    const SendingInfo = ". " + Text.replace(/'/g, "").replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
-    const options = {
-      method: 'POST',
-      uri: API,
-      headers: {
-        'Referer': 'https://behnevis.com/',
-        'Origin': 'https://behnevis.com',
-        'Save-Data': 'on',
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36',
-        'DNT': '1',
-        'Content-Type': 'text/plain',
-      },
-      body: SendingInfo,
-      json: true
-    };
-    await rp(options).then(async function (response) {
-      if (response.statusCode == 200) {
-        if (response && response.body && response.body['."'] && response.body['".']) {
-          delete response.body['."'] // still dont ask me why :|
-          delete response.body['".'] // still dont ask me why :|
-          for (let i = 0; i < FlatList.length; i++) {
-            const CheckingWord = FlatList[i].toLowerCase();
-            const canTranslate = await isValidForTranslate(CheckingWord);
-            if (canTranslate) {
-              const checkWordLower = CheckingWord.toLowerCase();
-              if (response.body[checkWordLower]) {
-                FlatList[i] = response.body[checkWordLower];
+      });
+      let FlatList = NewList.flat().map((item) => {
+        if (item.length > 1 && item.includes("'")) {
+          const StatedWith = item.startsWith("'")
+          const EndedWith = item.endsWith("'")
+          const Cleaned = item.replace(/'/g, "")
+          if (StatedWith && EndedWith) {
+            return  "'" + Cleaned + "'";
+          } else if (StatedWith) {
+            return Cleaned + "'";
+          } else if (EndedWith) {
+            return "'" + Cleaned;
+          } else {
+            return Cleaned;
+          }
+        } else {
+          return item;
+        }
+      });
+      
+      const SendingInfo = ". " + Text.replace(/'/g, "").replace(/\n/g, " ").toLowerCase() + " ."; // Don't ask me why :|
+      const options = {
+        method: 'POST',
+        uri: API,
+        headers: {
+          'Referer': 'https://behnevis.com/',
+          'Origin': 'https://behnevis.com',
+          'Save-Data': 'on',
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36',
+          'DNT': '1',
+          'Content-Type': 'text/plain',
+        },
+        body: SendingInfo,
+        json: true
+      };
+      await rp(options).then(async function (response) {
+        if (response.statusCode == 200) {
+          if (response && response.body && response.body['."'] && response.body['".']) {
+            delete response.body['."'] // still dont ask me why :|
+            delete response.body['".'] // still dont ask me why :|
+            for (let i = 0; i < FlatList.length; i++) {
+              const CheckingWord = FlatList[i].toLowerCase();
+              const canTranslate = await isValidForTranslate(CheckingWord);
+              if (canTranslate) {
+                const checkWordLower = CheckingWord.toLowerCase();
+                if (response.body[checkWordLower]) {
+                  FlatList[i] = response.body[checkWordLower];
+                }
               }
             }
+            const FinalText = FlatList.join(" ");
+            resolve(FinalText);
+          } else {
+            resolve(`مشکلی در وب سرویس ها پیش آمده است لطفا بعد از چند ثانیه دوباره تلاش کنید
+  کد خطا: Wrong Body Response`)
           }
-          const FinalText = FlatList.join(" ");
-          resolve(FinalText);
         } else {
           resolve(`مشکلی در وب سرویس ها پیش آمده است لطفا بعد از چند ثانیه دوباره تلاش کنید
-کد خطا: Wrong Body Response`)
+  کد خطا: ${response.statusCode}`)
         }
-      } else {
-        resolve(`مشکلی در وب سرویس ها پیش آمده است لطفا بعد از چند ثانیه دوباره تلاش کنید
-کد خطا: ${response.statusCode}`)
-      }
-    }).catch(function (err) {
-      const error = toString(err.error || err);
-      resolve(`مشکلی در فرایند ترجمه پیش آمده است لطفا بعدا دوباره تلاش کنید
-خطا: ${error}`)
+      }).catch(function (err) {
+        const error = toString(err.error || err);
+        resolve(`مشکلی در فرایند ترجمه پیش آمده است لطفا بعدا دوباره تلاش کنید
+  خطا: ${error}`)
+      });
     });
-  });
+  } catch (err) {
+    console.error("Error in Translate function:", err);
+    return "خطایی در ترجمه رخ داده است. لطفا بعدا دوباره تلاش کنید.";
+  }
 }
 
 async function workOnMessage(ctx) {
-  const currentMessage = ctx.message.caption || ctx.message.text;
-  if (ctx.chat.type === "private") {
-    if (currentMessage) {
-      if (/[a-zA-Z]/.test(currentMessage)) {
-        let newText = await Translate(currentMessage);
-        await ctx.reply(newText,
-              {reply_to_message_id: ctx.message.message_id});
-      } else {
-        await ctx.reply("اینکه فینگلیش نیست",
-              {reply_to_message_id: ctx.message.message_id});
+  try {
+    const currentMessage = ctx.message.caption || ctx.message.text;
+    if (ctx.chat.type === "private") {
+      if (currentMessage) {
+        if (/[a-zA-Z]/.test(currentMessage)) {
+          let newText = await Translate(currentMessage);
+          await ctx.reply(newText,
+                {reply_to_message_id: ctx.message.message_id});
+        } else {
+          await ctx.reply("اینکه فینگلیش نیست",
+                {reply_to_message_id: ctx.message.message_id});
+        }
+      }
+    } else if ((currentMessage && currentMessage.length > 0) && (ctx.chat.type !== "private")) {
+      const LastWord = currentMessage.split(" ").pop();
+      const skipWay = EndingLetters.includes(LastWord);
+      if ((currentMessage && ListeningCommands.includes(currentMessage.toLowerCase())) || skipWay) {
+        const messageToCheck = ctx.message.reply_to_message 
+        ? ((ctx.message.reply_to_message.caption !== undefined) ? ctx.message.reply_to_message.caption : (ctx.message.reply_to_message.text !== undefined) 
+        ? ctx.message.reply_to_message.text : null) : null;
+        if (!messageToCheck) {
+          await ctx.reply("پیامی برای ترجمه وجود ندارد",
+                {reply_to_message_id: ctx.message.message_id});
+          return;
+        }
+        const TargetMessage = skipWay ? currentMessage.slice(0, (LastWord.length * -1)) : messageToCheck;
+        if (/[a-zA-Z]/.test(TargetMessage)) {
+          let newText = await Translate(TargetMessage);
+          await ctx.reply(newText,
+                {reply_to_message_id: ctx.message.message_id});
+        } else {
+          await ctx.reply("اینکه فینگلیش نیست",
+                {reply_to_message_id: ctx.message.message_id});
+        }
       }
     }
-  } else if ((currentMessage && currentMessage.length > 0) && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
-    const LastWord = currentMessage.split(" ").pop();
-    const skipWay = EndingLetters.includes(LastWord);
-    if ((currentMessage && ListeningCommands.includes(currentMessage.toLowerCase())) || skipWay) {
-      const TargetMessage = skipWay ? currentMessage.slice(0, (LastWord.length * -1)) : (ctx.message.reply_to_message.caption || ctx.message.reply_to_message.text);
-      if (/[a-zA-Z]/.test(TargetMessage)) {
-        let newText = await Translate(TargetMessage);
-        await ctx.reply(newText,
-              {reply_to_message_id: ctx.message.message_id});
-      } else {
-        await ctx.reply("اینکه فینگلیش نیست",
-              {reply_to_message_id: ctx.message.message_id});
-      }
-    }
+  } catch (err) {
+    console.error("Error in workOnMessage:", err);
+    await ctx.reply("خطایی در پردازش پیام رخ داده است. لطفا بعدا دوباره تلاش کنید.");
   }
 }
 
