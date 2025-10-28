@@ -208,20 +208,20 @@ async function workOnMessage(ctx) {
       const LastWord = currentMessage.split(" ").pop();
       const skipWay = EndingLetters.includes(LastWord);
       if ((currentMessage && ListeningCommands.includes(currentMessage.toLowerCase())) || skipWay) {
-        const messageToCheck = ctx.reply_to_message 
+        const messageToCheck = (skipWay && LastWord.length < currentMessage.length) ? currentMessage : (ctx.reply_to_message 
         ? ((ctx.reply_to_message.caption !== undefined) ? ctx.reply_to_message.caption : (ctx.reply_to_message.text !== undefined) 
-        ? ctx.reply_to_message.text : null) : currentMessage;
+        ? ctx.reply_to_message.text : null) : currentMessage);
         if (!messageToCheck) {
           await sendReply(ctx.chat.id, "پیامی برای ترجمه وجود ندارد", ctx.message_id);
           return;
         }
-        const TargetMessage = skipWay ? currentMessage.slice(0, (LastWord.length * -1)) : messageToCheck;
+        const TargetMessage = skipWay ? messageToCheck.slice(0, (LastWord.length * -1)) : messageToCheck;
         if (/[a-zA-Z]/.test(TargetMessage)) {
           let newText = await Translate(TargetMessage);
           await sendReply(ctx.chat.id, newText, ctx.message_id);
         } else {
+          await sendReply(ctx.chat.id, "اینکه فینگلیش نیست", ctx.message_id);
         }
-        await sendReply(ctx.chat.id, "اینکه فینگلیش نیست", ctx.message_id);
       }
     }
   } catch (err) {
